@@ -22,6 +22,9 @@ The API allows companies to:
 - Prisma ORM
 - SQLite Database
 - Multer (file upload)
+- bcrypt (hash password)
+- JWT (login token)
+- express-rate-limit (rate limiting)
 
 ---
 
@@ -30,8 +33,7 @@ The API allows companies to:
 ## 1. Clone Repository
 
 ```bash
-git clone https://github.com/your-username/news-article-api.git
-cd news-article-api
+git clone https://github.com/Richardryanp/Aksub-Week2-3.git
 ```
 
 ---
@@ -51,6 +53,7 @@ Create `.env` file:
 ```env
 DATABASE_URL="file:./dev.db"
 PORT=3000
+JWT_SECRET="dev-secret-key"
 ```
 
 ---
@@ -105,11 +108,12 @@ news-api
 │   └── seed.js
 │
 ├── src
+│   ├── config
 │   ├── controllers
 │   ├── services
 │   ├── repositories
 │   ├── routes
-│   ├── middleware
+│   ├── middlewares
 │   └── app.js
 │
 ├── uploads
@@ -166,12 +170,19 @@ GET http://localhost:3000/api/articles
 # 2. Create Article
 
 Create a new article.
-Articles are **unpublished by default**.
+Articles are **unpublished by default** (`published = false`).
+Only authenticated users with role `writer` or `admin` can create articles.
 
 ### Endpoint
 
 ```
 POST /api/articles
+```
+
+### Auth Header
+
+```
+Authorization: Bearer <JWT_TOKEN>
 ```
 
 ### Body (form-data)
@@ -200,6 +211,7 @@ Body:
 ```
 
 Upload thumbnail using **form-data**.
+Send the image file in the `thumbnail` field.
 
 ---
 
@@ -210,14 +222,17 @@ Update article information.
 ### Endpoint
 
 ```
-PUT /api/articles/:id
+PATCH /api/articles/:id
 ```
 
 Example:
 
 ```
-PUT /api/articles/2
+PATCH /api/articles/2
 ```
+
+Only authenticated users with role `writer` or `admin` can update.
+`thumbnail` is optional for update (if you don't send it, the old thumbnail is kept).
 
 Body:
 
@@ -229,13 +244,14 @@ Body:
 }
 ```
 
-Thumbnail can also be updated.
+If you want to replace the thumbnail, send `thumbnail` in **form-data**.
 
 ---
 
 # 4. Delete Article
 
 Remove an article from the database.
+Only authenticated users with role `writer`, `editor`, or `admin` can delete.
 
 ### Endpoint
 
@@ -262,6 +278,8 @@ Response:
 # 5. Publish Article
 
 Change `published` status from **false → true**.
+Only authenticated users with role `editor` can publish.
+No request body is required.
 
 ### Endpoint
 
@@ -290,6 +308,7 @@ Response:
 # 6. Search Article
 
 Search articles by title.
+Search returns only articles with `published = true`.
 
 ### Endpoint
 
@@ -317,15 +336,108 @@ Response:
 
 ---
 
+# Auth & Authorization (Week 3)
+
+# 7. Register (Reader)
+
+Create a new user account. The created user will always have role `reader`.
+Rate limit: **max 5 requests per minute per IP**.
+
+### Endpoint
+
+```
+POST /api/auth/register
+```
+
+### Body (JSON)
+
+```json
+{
+  "name": "User Reader",
+  "email": "reader1@example.com",
+  "password": "Password1",
+  "dateOfBirth": "2001-05-10"
+}
+```
+
+---
+
+# 8. Login
+
+Login using email + password. Returns a JWT token.
+Rate limit: **max 5 requests per minute per IP**.
+
+### Endpoint
+
+```
+POST /api/auth/login
+```
+
+### Body (JSON)
+
+```json
+{
+  "email": "reader1@example.com",
+  "password": "Password1"
+}
+```
+
+### Response
+
+```json
+{
+  "token": "<JWT_TOKEN>",
+  "user": {
+    "id": 1,
+    "name": "User Reader",
+    "email": "reader1@example.com",
+    "role": "reader"
+  }
+}
+```
+
+---
+
+# 9. Assign Role to User (Admin)
+
+Admin can change a user role to `writer` or `editor` (based on email).
+
+### Endpoint
+
+```
+POST /api/auth/assign-role
+```
+
+### Auth Header
+
+```
+Authorization: Bearer <JWT_TOKEN>
+```
+
+### Body (JSON)
+
+```json
+{
+  "email": "reader1@example.com",
+  "role": "writer"
+}
+```
+
+---
+
 # File Upload
 
 Uploaded thumbnails are stored in:
 
 ```
-/uploads
+uploads/
 ```
 
-The file path is saved in the database.
+The local file path is saved in the database (`thumbnail`), and the files are served statically at:
+
+```
+/uploads/<filename>
+```
 
 Example:
 
@@ -338,16 +450,12 @@ Example:
 # Seeder Data
 
 The project includes **5 seeded articles** with different `published` values.
+The seeder also creates an **admin** account directly in the database for Week 3 authentication.
 
 Some are:
 
--  Published articles
+- Published articles
 - Unpublished articles
-
-This allows testing of:
-
-- Publish feature
-- Article filtering
 
 ---
 

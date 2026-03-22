@@ -1,19 +1,30 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client-js" // Ini buat generate client Prisma biar bisa dipake di Node.js
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider = "sqlite" // DB yang dipake itu SQLite, simple banget buat dev
+  url      = env("DATABASE_URL") // URL DB-nya diambil dari .env, biar gampang ganti DB
 }
 
 model Article {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String
-  author    String
-  thumbnail String?
-  published Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement()) // Primary key, auto increment, jadi unik tiap artikel
+  title     String // Judul artikel
+  content   String // Isi artikelnya
+  author    String // Nama penulis
+  thumbnail String? // Thumbnail, boleh kosong (nullable)
+  published Boolean  @default(false) // Status publish, defaultnya belum publish
+  createdAt DateTime @default(now()) // Tanggal artikel dibuat, otomatis ngisi
+  updatedAt DateTime @updatedAt // Tanggal terakhir update, auto update tiap ada perubahan
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
+  password    String
+  role        String   @default("reader")
+  dateOfBirth DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
