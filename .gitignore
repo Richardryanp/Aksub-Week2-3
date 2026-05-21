@@ -3,4 +3,7 @@ node_modules
 .env
 .vscode
 .dist
+dist
+prisma/test.db
+prisma/*-journal
 /generated/prisma
